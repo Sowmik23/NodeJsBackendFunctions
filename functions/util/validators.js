@@ -47,17 +47,17 @@ exports.validateLoginData = (data) => {
 exports.reduceUserDetails = (data) => {
     let userDetails = {};
 
-    if(!isEmpty(data.bio.trim())) userDetails.bio = data.bio;
-    if(!isEmpty(data.website.trim())){
-        if(data.website.trim().substring(0,4) !== 'http'){
-            userDetails.website = `http://${data.website.trim()}`;
+    if(!isEmpty(data.department)) userDetails.department = data.department;
+    if(!isEmpty(data.fbId)){
+        if(data.fbId.trim().substring(0,4) !== 'http'){
+            userDetails.fbId = `http://${data.fbId.trim()}`;
         }
         else {
-            userDetails.website = data.website;
+            userDetails.fbId = data.fbId;
         }
     }
-    if(!isEmpty(data.location.trim())){
-        userDetails.location = data.location;
+    if(!isEmpty(data.session)){
+        userDetails.session = data.session;
     }
     return userDetails;
 }

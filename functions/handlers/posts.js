@@ -13,7 +13,7 @@ exports.getAllPosts = (req, res) => {
                 postId: doc.id,
                 body: doc.data().body,
                 userHandle: doc.data().userHandle,
-                createdAt: doc.date().createdAt,
+                createdAt: doc.data().createdAt,
                 commentCount: doc.data().commentCount,
                 likeCount: doc.data().likeCount,
                 userImage: doc.data().userImage
@@ -53,7 +53,7 @@ exports.createPost = (req, res) => {
         res.status(500).json({ error: 'Something went wrong'});
         console.error(err);
     });  
-}
+};
 
 // Fetch one post 
 exports.getPost = (req, res ) => {
@@ -73,7 +73,7 @@ exports.getPost = (req, res ) => {
     })
     .then(data => {
         postData.comments = [];
-        data.forEach(doc =>{
+        data.forEach((doc) =>{
             postData.comments.push(doc.data())
         });
         return res.json(postData);
@@ -82,7 +82,7 @@ exports.getPost = (req, res ) => {
         console.error(err);
         res.status(500).json({ error: err.code });
     });
-}
+};
 
 // Comment on a comment
 exports.commentOnPost = (req, res ) => {
@@ -97,7 +97,7 @@ exports.commentOnPost = (req, res ) => {
     };
 
     db.doc(`/posts/${req.params.postId}`).get()
-    .then(doc => {
+    .then((doc) => {
         if(!doc.exists){
             return res.status(404).json({ error: 'Post not found'});
         }
@@ -117,15 +117,18 @@ exports.commentOnPost = (req, res ) => {
 
 // Like a post
 exports.likePost = (req, res) => {
-    const likeDocument = db.collection('likes').where('userHandle', '==', req.user.handle)
-    .where('postId', '==', req.params.postId).limit(1);
+    const likeDocument = db
+    .collection('likes')
+    .where('userHandle', '==', req.user.handle)
+    .where('postId', '==', req.params.postId)
+    .limit(1);
 
     const postDocument = db.doc(`/post/${req.params.postId}`);
 
     let postData;
 
     postDocument.get()
-    .then(doc => {
+    .then((doc) => {
         if(doc.exists){
             postData = doc.data();
             postData.postId = doc.id;
@@ -135,9 +138,11 @@ exports.likePost = (req, res) => {
             return res.status(404).json({ error: 'Post not found' });
         }
     })
-    .then(data => {
+    .then((data) => {
         if(data.empty){
-            return db.collection('likes').add({
+            return db
+            .collection('likes')
+            .add({
                 postId: req.params.postId,
                 userHandle: req.user.handle
             })
@@ -203,10 +208,10 @@ exports.unlikePost = (req, res) => {
 
 // Delete a post
 exports.deletePost = (req, res) => {
-    const document = db.doc(`'/posts/${req.params.postId}`);
+    const document = db.doc(`/posts/${req.params.postId}`);
 
     document.get()
-    .then(doc => {
+    .then((doc) => {
         if(!doc.exists){
             return res.status(404).json({ error: 'Post not found'});
         }
@@ -224,4 +229,4 @@ exports.deletePost = (req, res) => {
         console.error(err);
         return res.status(500).json({ error: err.code});
     });
-}
+};

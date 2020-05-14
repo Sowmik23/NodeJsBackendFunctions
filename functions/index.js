@@ -2,7 +2,11 @@ const functions = require('firebase-functions');
 const app = require('express')();
 const FBAtuh = require('./util/fbAuth');
 
+const cors = require('cors')
+app.use(cors());
+
 const { db } = require('./util/admin');
+
 const { 
     getAllPosts, 
     createPost, 
@@ -47,7 +51,7 @@ exports.api = functions.region('europe-west1').https.onRequest(app);
 
 exports.createNotificationOnLike = functions
 .region('europe-west1')
-.firestore.document('like/{id}')
+.firestore.document('likes/{id}')
 .onCreate((snapshot) => {
     return db.doc(`/posts/${snapshot.data().postId}`)
     .get()
@@ -69,13 +73,13 @@ exports.createNotificationOnLike = functions
 });
 
 
-exports.deleteNotificationsOnLike = functions
+exports.deleteNotificationsOnUnLike = functions
 .region('europe-west1')
-.firestore.document('comments/{id}')
+.firestore.document('likes/{id}')
 .onDelete((snapshot) =>{
     return db.doc(`/notifications/${snapshot.id}`)
     .delete()
-    .catch(err=> {
+    .catch((err) => {
         console.error(err);
         return;
     });
@@ -86,9 +90,10 @@ exports.createNotificationOnComment = functions
 .region('europe-west1')
 .firestore.document('comments/{id}')
 .onCreate((snapshot) => {
-    return db.doc(`/posts/${snapshot.data().postId}`)
+    return db
+    .doc(`/posts/${snapshot.data().postId}`)
     .get()
-    .then( doc => {
+    .then( (doc) => {
         if(doc.exists && doc.data().userHandle !== snapshot.data().userHandle){
             return db.doc(`/notifications/${snapshot.id}`).set({
                 createdAt: new Date().toISOString(),
@@ -100,7 +105,7 @@ exports.createNotificationOnComment = functions
             });
         }
     })
-    .catch(err=> {
+    .catch((err) => {
         console.error(err);
         return;
     });
@@ -111,22 +116,24 @@ exports.onUserImageChange = functions
 .region('europe-west1')
 .firestore.document('/users/{userId}')
 .onUpdate((change) => {
+    console.log("Before upload");
     console.log(change.before.data());
+    console.log("After upload");
     console.log(change.after.data());
 
     if(change.before.data().imageUrl !== change.after.data().imageUrl) {
         console.log('Image has changed');
-
+        
         let batch = db.batch();
         return db
         .collection('posts')
         .where('userHandle', '==', change.before.data().handle)
         .get()
         .then((data) => {
-            data.forEach(doc => {
+            data.forEach((doc) => {
                 const post = db.doc(`/posts/${doc.id}`);
-                batch.update(post, {userImage: change.after.data().imageUrl});
-            })
+                batch.update(post, {userImage: change.after.data().imageUrl });
+            });
             return batch.commit();
         });
     }
@@ -141,26 +148,30 @@ exports.onPostDelete = functions
     const postId = context.params.postId;
     const batch = db.batch();
     return db
-    .collection('comments').where('postId', '==', postId).get()
-    .then(data => {
-        data.forEach(doc => {
+    .collection('comments')
+    .where('postId', '==', postId).get()
+    .then((data) => {
+        data.forEach((doc) => {
             batch.delete(db.doc(`/comments/${doc.id}`));
         })
-        return db.collection('likes').where('postId', '==', postId).get();
+        return db
+        .collection('likes')
+        .where('postId', '==', postId)
+        .get();
     })
-    .then(data => {
-        data.forEach(doc => {
+    .then((data) => {
+        data.forEach((doc) => {
             batch.delete(db.doc(`/likes/${doc.id}`));
         })
         return db.collection('notifications').where('postId', '==', postId).get();
     })
-    .then(data => {
+    .then((data) => {
         data.forEach(doc => {
             batch.delete(db.doc(`/notifications/${doc.id}`));
         })
         return batch.commit();
     })
-    .catch(err => {
+    .catch((err) => {
         console.error(err);
     });
 });
